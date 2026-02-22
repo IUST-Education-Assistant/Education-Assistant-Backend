@@ -1,16 +1,66 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: education-assistant-api
+    restart: unless-stopped
+    environment:
+      # Database (recommended: set POSTGRES_* in .env; this derives DATABASE_URL)
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-education_db}
+
+      # Auth / JWT
+      SECRET_KEY: ${SECRET_KEY:-change_this}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-2}
+
+      # LLM (Groq)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_LLM_MODEL: ${GROQ_LLM_MODEL:-openai/gpt-oss-20b}
+
+      # SMTP (optional; required only if you use OTP endpoints)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+
+      # HuggingFace / SentenceTransformer cache (persists across restarts)
+      HF_HOME: /models/hf
+
+      # Embeddings:
+      # - If you have a local model folder, mount it to /app/embedding_model and set EMBEDDING_MODEL_PATH=/app/embedding_model
+      # - Otherwise set EMBEDDING_MODEL_NAME to a HuggingFace model id (it will be downloaded on first run)
+      EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH:-}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./vectordb:/app/vectordb:ro
+      # - ./embedding_model:/app/embedding_model:ro
+      - model_cache:/models
+
   postgres:
     image: postgres:16
     container_name: postgres-db
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: amin
-      POSTGRES_PASSWORD: amin
-      POSTGRES_DB: amin
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-education_db}
     ports:
-      - "5433:5432"   # <-- تغییر پورت به 5433
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
 volumes:
   pgdata:
+  model_cache:

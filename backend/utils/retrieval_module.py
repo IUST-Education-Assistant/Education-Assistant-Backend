@@ -12,10 +12,10 @@ class DummyEmbeddings:
 
 class FaissRetriever:
     def __init__(self, faiss_path: str, model_path: str):
-        self.faiss_path = faiss_path
-        self.model = SentenceTransformer(model_path)
+        self.faiss_path = str(faiss_path)
+        self.model = SentenceTransformer(str(model_path))
         self.vectorstore = FAISS.load_local(
-            faiss_path,
+            str(faiss_path),
             embeddings=DummyEmbeddings(),
             allow_dangerous_deserialization=True
         )

@@ -1,5 +1,5 @@
 import os
-import json
+from pathlib import Path
 
 from utils.retrieval_module import FaissRetriever
 
@@ -11,33 +11,51 @@ from langgraph.graph import StateGraph, START
 from langgraph.graph import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
-bachelor_faiss_path = r".\vectordb\bachelor_faiss_index"
-postgraduate_faiss_path = r".\vectordb\postgraduate_faiss_index"
-international_faiss_path = r".\vectordb\international_faiss_index"
-ostads_faiss_path = r".\vectordb\ostads_faiss_index"
-embedding_model_path = r"embedding_model"
+from core.runtime_config import load_runtime_config
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+VDB_DIR = BASE_DIR / "vectordb"
+
+bachelor_faiss_path = VDB_DIR / "bachelor_faiss_index"
+postgraduate_faiss_path = VDB_DIR / "postgraduate_faiss_index"
+international_faiss_path = VDB_DIR / "international_faiss_index"
+ostads_faiss_path = VDB_DIR / "ostads_faiss_index"
+
+default_local_model = BASE_DIR / "embedding_model"
+embedding_model_path = (
+    os.getenv("EMBEDDING_MODEL_PATH")
+    or os.getenv("EMBEDDING_MODEL_NAME")
+    or (
+        str(default_local_model)
+        if default_local_model.exists()
+        else "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
+)
 
 bachelor_retriever = FaissRetriever(
-    faiss_path=bachelor_faiss_path,
-    model_path=embedding_model_path)
+    faiss_path=bachelor_faiss_path, model_path=embedding_model_path
+)
 
 postgraduate_retriever = FaissRetriever(
-    faiss_path=postgraduate_faiss_path,
-    model_path=embedding_model_path)
+    faiss_path=postgraduate_faiss_path, model_path=embedding_model_path
+)
 
 international_retriever = FaissRetriever(
-    faiss_path=international_faiss_path,
-    model_path=embedding_model_path)
+    faiss_path=international_faiss_path, model_path=embedding_model_path
+)
 
 ostads_retriever = FaissRetriever(
-    faiss_path=ostads_faiss_path,
-    model_path=embedding_model_path)
+    faiss_path=ostads_faiss_path, model_path=embedding_model_path
+)
 
-with open(r"./config.json", "r", encoding="utf-8") as f:
-    config = json.load(f)
+config = load_runtime_config()
+llm_model = config.get("GROQ_LLM_MODEL")
+api_key = config.get("GROQ_API_KEY")
+if not llm_model or not api_key:
+    raise RuntimeError(
+        "GROQ_LLM_MODEL and GROQ_API_KEY must be set (env vars recommended)"
+    )
 
-llm_model = config["GROQ_LLM_MODEL"]
-api_key = config["GROQ_API_KEY"]
 
 @tool
 def bachelor_tool(query: str) -> List[str]:
@@ -77,6 +95,7 @@ def bachelor_tool(query: str) -> List[str]:
     """
     results = bachelor_retriever.search(query, top_k=5)
     return results
+
 
 @tool
 def international_tool(query: str) -> List[str]:
@@ -118,6 +137,7 @@ def international_tool(query: str) -> List[str]:
     results = international_retriever.search(query, top_k=5)
     return results
 
+
 @tool
 def postgraduate_tool(query: str) -> List[str]:
     """
@@ -151,6 +171,7 @@ def postgraduate_tool(query: str) -> List[str]:
     results = postgraduate_retriever.search(query, top_k=5)
     return results
 
+
 @tool
 def ostads_tool(query: str) -> List[str]:
     """
@@ -174,20 +195,22 @@ def ostads_tool(query: str) -> List[str]:
     results = ostads_retriever.search(query, top_k=10)
     return results
 
+
 llm = init_chat_model(
-    llm_model,
-    model_provider="groq",
-    api_key=config["GROQ_API_KEY"],
-    temperature=0.0)
+    llm_model, model_provider="groq", api_key=api_key, temperature=0.0
+)
 
 tools = [bachelor_tool, international_tool, postgraduate_tool, ostads_tool]
 llm_with_tools = llm.bind_tools(tools)
 
-class State(TypedDict):
-    messages : Annotated[list, add_messages]
 
-def tool_calling(state:State) -> State:
-    return {"messages" : llm_with_tools.invoke(state["messages"])}
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def tool_calling(state: State) -> State:
+    return {"messages": llm_with_tools.invoke(state["messages"])}
+
 
 builder = StateGraph(State)
 builder.add_node("tool_calling_llm", tool_calling)
@@ -197,6 +220,7 @@ builder.add_conditional_edges("tool_calling_llm", tools_condition)
 builder.add_edge("tools", "tool_calling_llm")
 
 graph = builder.compile()
+
 
 def agentic_system(query: str) -> str:
     prompt = f"""    
@@ -214,6 +238,6 @@ def agentic_system(query: str) -> str:
 
 ورودی کاربر:{query}
 """
-    state = {"messages" : {"messages" : prompt}}
+    state = {"messages": {"messages": prompt}}
     result = graph.invoke(state["messages"])
     return result["messages"][-1].content

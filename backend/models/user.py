@@ -3,7 +3,7 @@ from core.db import Base
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     student_id = Column(String(36), unique=True, index=True, nullable=False)

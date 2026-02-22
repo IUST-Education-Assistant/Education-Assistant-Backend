@@ -14,7 +14,9 @@ logging.basicConfig(
 
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
-Base.metadata.create_all(bind=engine)
+@app.on_event("startup")
+def _startup_create_tables() -> None:
+    Base.metadata.create_all(bind=engine)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
