@@ -22,4 +22,7 @@ COPY . /app
 EXPOSE 8000
 
 # Uvicorn for simplicity; swap to gunicorn later if needed.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+#  CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# entered this in hamravesh
+# /bin/bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
