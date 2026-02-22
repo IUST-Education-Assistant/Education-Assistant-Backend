@@ -1,7 +1,7 @@
 services:
   api:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: education-assistant-api
     restart: unless-stopped

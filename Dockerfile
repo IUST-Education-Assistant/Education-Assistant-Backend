@@ -14,15 +14,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /app/requirements.txt
+COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
-COPY . /app
+COPY backend/ /app/
 
 EXPOSE 8000
 
 # Uvicorn for simplicity; swap to gunicorn later if needed.
-#  CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# entered this in hamravesh
-# /bin/bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
