@@ -6,7 +6,6 @@ services:
     container_name: education-assistant-api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-education_db}
       SECRET_KEY: ${SECRET_KEY:-change_this}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-2}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
