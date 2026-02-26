@@ -1,8 +1,14 @@
 import time
 import logging
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html
+
+# Load .env BEFORE importing modules that rely on these env vars
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from core.db import Base, engine
 from routes import auth_router, chat_router
