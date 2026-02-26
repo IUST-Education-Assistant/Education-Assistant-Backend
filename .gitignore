@@ -6,8 +6,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-.env
-.env.*
+# .env
+# .env.*
 
 backend/models/
 backend/.hf_cache/
+notes.txt
